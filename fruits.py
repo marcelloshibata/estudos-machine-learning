@@ -1,0 +1,26 @@
+# %%
+import pandas as pd
+
+df = pd.read_excel("data/dados_frutas.xlsx")
+df
+
+# %%
+
+# modelo do scikit que possui a árvore
+from sklearn import tree
+arvore = tree.DecisionTreeClassifier()
+
+# %%
+
+y = df['Fruta']
+caracteristicas = ["Arredondada", "Suculenta", "Vermelha", "Doce"]
+
+x = df[caracteristicas]
+
+# %%
+
+# Isso é MACHINE LEARNING
+arvore.fit(x, y) # X corresponde as co-variáveis enquanto Y as respostas.
+
+# %%
+arvore.predict([[1,1,1,1]]) # Pedindo pra maquina fazer uma previsão de qual fruta será se corresponder a todas as características
