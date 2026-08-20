@@ -24,3 +24,11 @@ arvore.fit(x, y) # X corresponde as co-variáveis enquanto Y as respostas.
 
 # %%
 arvore.predict([[1,1,1,1]]) # Pedindo pra maquina fazer uma previsão de qual fruta será se corresponder a todas as características
+
+# %% print da arvore de decisao
+import matplotlib.pyplot as plt
+
+tree.plot_tree(arvore, feature_names=caracteristicas,
+               class_names=arvore.classes_,
+               filled=True)
+# %%
