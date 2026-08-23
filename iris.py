@@ -28,3 +28,7 @@ print(previsionString)
 plt.figure(figsize=(15,10), dpi=400)
 tree.plot_tree(decisionTree, filled=True, 
             feature_names=iris.feature_names, class_names=iris.target_names)
+
+prob = decisionTree.predict_proba(X)
+df_probs = pd.DataFrame(prob, columns=iris.target_names)
+print(df_probs.head())
