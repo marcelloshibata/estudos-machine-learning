@@ -106,3 +106,7 @@ plt.ylabel("Recall")
 
 plt.legend([f"Árvore: {auc_arvore:.2f}", f"Naive: {auc_naive:.2f}",
             f"Regressão: {auc_reg:.2f}"] )
+
+# %% Serializando o modelo em um arquivo binario para ser usado em outro lugar
+
+pd.Series({"model": reg, "features":features}).to_pickle("model_feliz.pkl")
