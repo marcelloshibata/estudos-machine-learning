@@ -93,6 +93,32 @@ auc_reg = metrics.roc_auc_score(y, df_predict['proba_reg'])
 auc_reg
 
 # %%
+from IPython.display import display, Markdown
+import re
+
+def clean_tex(text):
+    return re.sub(r'[_?#$&%]', '', str(text))
+
+for i, classe in enumerate(naive.classes_):
+    prior = naive.class_prior_[i]
+    display(Markdown(f"### **Classe Y = {classe}** (Prior: {prior:.4f})"))
+    
+    for j, feat_name in enumerate(X.columns):
+        mu = float(naive.theta_[i, j])
+        var = float(naive.var_[i, j])
+        clean_name = clean_tex(feat_name)
+        
+        formula = (
+            f"$$P(\\text{{{clean_name}}} \\mid Y={classe}) = "
+            f"\\frac{{1}}{{\\sqrt{{2\\pi \\cdot {var:.4f}}}}} "
+            f"\\exp\\left( -\\frac{{(\\text{{{clean_name}}} - {mu:.4f})^2}}{{2 \\cdot {var:.4f}}} \\right)$$"
+        )
+        display(Markdown(formula))
+
+display(Markdown(r"$$P(Y=k \mid X) \propto P(Y=k) \prod_{i=1}^{n} \frac{1}{\sqrt{2\pi\sigma_{k,i}^2}} \exp\left(-\frac{(x_i - \mu_{k,i})^2}{2\sigma_{k,i}^2}\right)$$"))
+display(Markdown("---"))
+
+# %%
 import matplotlib.pyplot as plt
 
 plt.figure(dpi=400)
