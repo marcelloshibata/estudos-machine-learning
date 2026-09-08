@@ -84,38 +84,55 @@ onehot = encoding.OneHotEncoder(variables=best_features, ignore_format=True)
 
 # %% MODEL
 from sklearn import linear_model
+from sklearn import naive_bayes
+from sklearn import ensemble
 
-reg = linear_model.LogisticRegression(
+model = linear_model.LogisticRegression(
     penalty=None, 
     random_state=42,
-    max_iter=10000)
+    max_iter=10000
+    )
+model = naive_bayes.BernoulliNB()
+model = ensemble.RandomForestClassifier(
+    random_state=42,
+    min_samples_leaf=20,
+    n_jobs=-1, # nucleos do computador a ser usado
+    n_estimators=500,
+    )
+model = ensemble.AdaBoostClassifier(
+    random_state=42,
+    n_estimators=500,
+    learning_rate=0.01,
+)
 
 model_pipeline = pipeline.Pipeline(
     steps=[
         ('Discretizar', tree_discretisation),
         ('Onehot', onehot),
-        ('Model', reg),
+        ('Model', model),
     ]
 )
 
-model_pipeline.fit(X_train, y_train)
+model_pipeline.fit(X_train[best_features], y_train)
 
 # %%
 from sklearn import metrics
 
-y_train_predict = model_pipeline.predict(X_train)
-y_train_proba = model_pipeline.predict_proba(X_train)[:,1]
+y_train_predict = model_pipeline.predict(X_train[best_features])
+y_train_proba = model_pipeline.predict_proba(X_train[best_features])[:,1]
 
 acc_train = metrics.accuracy_score(y_train, y_train_predict)
 auc_train = metrics.roc_auc_score(y_train, y_train_proba)
+roc_train = metrics.roc_curve(y_train, y_train_proba)
 print("Acuracia Treino: ", acc_train)
 print("AUC Treino: ", auc_train)
 
 # %% Teste na base de test
 
 
-y_test_predict = model_pipeline.predict(X_test)
-y_test_proba = model_pipeline.predict_proba(X_test)[:,1]
+y_test_predict = model_pipeline.predict(X_test[best_features])
+y_test_proba = model_pipeline.predict_proba(X_test[best_features])[:,1]
+roc_test = metrics.roc_curve(y_test, y_test_proba)
 
 acc_test = metrics.accuracy_score(y_test, y_test_predict)
 auc_test = metrics.roc_auc_score(y_test, y_test_proba)
@@ -124,10 +141,24 @@ print("AUC Test: ", auc_test)
 
 # %% Teste na OOT
 
-y_oot_predict = model_pipeline.predict(oot[features])
-y_oot_proba = model_pipeline.predict_proba(oot[features])[:,1]
+y_oot_predict = model_pipeline.predict(oot[best_features])
+y_oot_proba = model_pipeline.predict_proba(oot[best_features])[:,1]
+roc_oot = metrics.roc_curve(oot[target], y_oot_proba)
 
 acc_oot = metrics.accuracy_score(oot[target], y_oot_predict)
 auc_oot = metrics.roc_auc_score(oot[target], y_oot_proba)
 print("Acuracia OOT: ", acc_oot)
 print("AUC OOT: ", auc_oot)
+
+# %%
+plt.figure(dpi=400)
+plt.plot(roc_train[0], roc_train[1])
+plt.plot(roc_test[0], roc_test[1])
+plt.plot(roc_oot[0], roc_oot[1])
+plt.grid(True)
+plt.title("Curva ROC")
+plt.legend([
+    f"Train: {100*auc_train:.2f}",
+    f"Test: {100*auc_test:.2f}",
+    f"Out-of-time: {100*auc_oot:.2f}",
+])
