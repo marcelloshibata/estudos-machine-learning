@@ -155,6 +155,8 @@ plt.figure(dpi=400)
 plt.plot(roc_train[0], roc_train[1])
 plt.plot(roc_test[0], roc_test[1])
 plt.plot(roc_oot[0], roc_oot[1])
+plt.ylabel("Sensibilidade")
+plt.xlabel("1 - Especificidade")
 plt.grid(True)
 plt.title("Curva ROC")
 plt.legend([
