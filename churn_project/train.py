@@ -128,11 +128,11 @@ model_pipeline = pipeline.Pipeline(
 
 with mlflow.start_run(run_name=model.__str__()):
     mlflow.sklearn.autolog()
-    grid.fit(X_train[best_features], y_train)
+    model_pipeline.fit(X_train[best_features], y_train)
 
     # ASSESS
-    y_train_predict = grid.predict(X_train[best_features])
-    y_train_proba = grid.predict_proba(X_train[best_features])[:,1]
+    y_train_predict = model_pipeline.predict(X_train[best_features])
+    y_train_proba = model_pipeline.predict_proba(X_train[best_features])[:,1]
 
     acc_train = metrics.accuracy_score(y_train, y_train_predict)
     auc_train = metrics.roc_auc_score(y_train, y_train_proba)
@@ -142,8 +142,8 @@ with mlflow.start_run(run_name=model.__str__()):
 
     # Teste na base de test
 
-    y_test_predict = grid.predict(X_test[best_features])
-    y_test_proba = grid.predict_proba(X_test[best_features])[:,1]
+    y_test_predict = model_pipeline.predict(X_test[best_features])
+    y_test_proba = model_pipeline.predict_proba(X_test[best_features])[:,1]
     roc_test = metrics.roc_curve(y_test, y_test_proba)
 
     acc_test = metrics.accuracy_score(y_test, y_test_predict)
@@ -153,8 +153,8 @@ with mlflow.start_run(run_name=model.__str__()):
 
     # Teste na OOT
 
-    y_oot_predict = grid.predict(oot[best_features])
-    y_oot_proba = grid.predict_proba(oot[best_features])[:,1]
+    y_oot_predict = model_pipeline.predict(oot[best_features])
+    y_oot_proba = model_pipeline.predict_proba(oot[best_features])[:,1]
     roc_oot = metrics.roc_curve(oot[target], y_oot_proba)
 
     acc_oot = metrics.accuracy_score(oot[target], y_oot_predict)
@@ -186,3 +186,14 @@ plt.legend([
     f"Test: {100*auc_test:.2f}",
     f"Out-of-time: {100*auc_oot:.2f}",
 ])
+
+plt.show()
+
+# %% O mlflow ja cuida da serializacao
+# model_df = pd.Series({
+#     "model": model_pipeline,
+#     "features": best_features,
+# })
+
+# model_df.to_pickle("model.pkl")
+# %%
