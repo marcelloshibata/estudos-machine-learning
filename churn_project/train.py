@@ -1,11 +1,24 @@
 # %%
 import pandas as pd
+import mlflow
+from sklearn import metrics
+from sklearn import model_selection
+from sklearn import tree
+from feature_engine import discretisation, encoding
+from sklearn import pipeline
+import matplotlib.pyplot as plt
+from sklearn import linear_model
+from sklearn import naive_bayes
+from sklearn import ensemble
+
+mlflow.set_tracking_uri("http://127.0.0.1:5000/")
+mlflow.set_experiment(experiment_id=1)
 
 df = pd.read_csv("../data/abt_churn.csv")
 df.head()
 
 # %%
-
+        
 # definindo out of time (safra mais recente)
 oot = df[df["dtRef"]==df['dtRef'].max()].copy()
 oot
@@ -20,8 +33,6 @@ target = 'flagChurn'
 X, y = df_train[features], df_train[target]
 
 # %% SAMPLE
-
-from sklearn import model_selection
 
 X_train, X_test, y_train, y_test = model_selection.train_test_split(X, y,
                                                                     random_state=42,
@@ -48,8 +59,6 @@ sumario['diff_rel'] = sumario[0] / sumario[1]
 sumario.sort_values(by=['diff_rel'], ascending=False)
 
 # %%
-from sklearn import tree
-import matplotlib.pyplot as plt
 
 arvore = tree.DecisionTreeClassifier(random_state=42)
 arvore.fit(X_train, y_train)
@@ -66,11 +75,8 @@ best_features = (feature_importances[feature_importances['acum.'] < 0.96]['index
 best_features
 
 # %% MODIFY
-from feature_engine import discretisation, encoding
-from sklearn import pipeline
 
-
-# %% Discretizar
+# Discretizar
 tree_discretisation = discretisation.DecisionTreeDiscretiser(
     variables=best_features,
     regression=False,
@@ -78,14 +84,11 @@ tree_discretisation = discretisation.DecisionTreeDiscretiser(
     cv=3
 )
 
-# %% One hot
+# One hot
 onehot = encoding.OneHotEncoder(variables=best_features, ignore_format=True)
 
 
 # %% MODEL
-from sklearn import linear_model
-from sklearn import naive_bayes
-from sklearn import ensemble
 
 # model = linear_model.LogisticRegression(
 #     penalty=None, 
@@ -93,37 +96,43 @@ from sklearn import ensemble
 #     max_iter=10000
 #     )
 # model = naive_bayes.BernoulliNB()
+
 model = ensemble.RandomForestClassifier( # melhor modelo 
     random_state=42,
-    min_samples_leaf=20,
-    n_jobs=-1, # nucleos do computador a ser usado
-    n_estimators=500,
+    n_jobs=2,
     )
+
 # model = ensemble.AdaBoostClassifier(
 #     random_state=42,
 #     n_estimators=500,
 #     learning_rate=0.01,
 # )
 
+params = {
+    "min_samples_leaf":[15,20,25,30,50],
+    "n_estimators":[100,200,500,1000],
+    "criterion":['gini', 'entropy', 'log_loss'],
+}
+
+grid = model_selection.GridSearchCV(
+    model, params, cv=3, scoring='roc_auc',
+    verbose=4)
+
 model_pipeline = pipeline.Pipeline(
     steps=[
         ('Discretizar', tree_discretisation),
         ('Onehot', onehot),
-        ('Model', model),
+        ('Grid', grid),
     ]
 )
 
-import mlflow
-from sklearn import metrics
-
-mlflow.set_tracking_uri("http://127.0.0.1:5500/")
-mlflow.set_experiment(experiment_id=1)
-with mlflow.start_run():
+with mlflow.start_run(run_name=model.__str__()):
     mlflow.sklearn.autolog()
-    model_pipeline.fit(X_train[best_features], y_train)
+    grid.fit(X_train[best_features], y_train)
 
-    y_train_predict = model_pipeline.predict(X_train[best_features])
-    y_train_proba = model_pipeline.predict_proba(X_train[best_features])[:,1]
+    # ASSESS
+    y_train_predict = grid.predict(X_train[best_features])
+    y_train_proba = grid.predict_proba(X_train[best_features])[:,1]
 
     acc_train = metrics.accuracy_score(y_train, y_train_predict)
     auc_train = metrics.roc_auc_score(y_train, y_train_proba)
@@ -133,8 +142,8 @@ with mlflow.start_run():
 
     # Teste na base de test
 
-    y_test_predict = model_pipeline.predict(X_test[best_features])
-    y_test_proba = model_pipeline.predict_proba(X_test[best_features])[:,1]
+    y_test_predict = grid.predict(X_test[best_features])
+    y_test_proba = grid.predict_proba(X_test[best_features])[:,1]
     roc_test = metrics.roc_curve(y_test, y_test_proba)
 
     acc_test = metrics.accuracy_score(y_test, y_test_predict)
@@ -144,8 +153,8 @@ with mlflow.start_run():
 
     # Teste na OOT
 
-    y_oot_predict = model_pipeline.predict(oot[best_features])
-    y_oot_proba = model_pipeline.predict_proba(oot[best_features])[:,1]
+    y_oot_predict = grid.predict(oot[best_features])
+    y_oot_proba = grid.predict_proba(oot[best_features])[:,1]
     roc_oot = metrics.roc_curve(oot[target], y_oot_proba)
 
     acc_oot = metrics.accuracy_score(oot[target], y_oot_predict)
